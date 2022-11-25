@@ -74,7 +74,7 @@ internal class ConfigComponent : InternalComponent
             OicqProtocol.AndroidPhone => AppInfo.AndroidPhone,
             OicqProtocol.Watch        => AppInfo.Watch,
             OicqProtocol.AndroidPad   => AppInfo.AndroidPad,
-            OicqProtocol.IPad         => AppInfo.Ipad,
+            OicqProtocol.iPad         => AppInfo.Ipad,
             _                         => AppInfo.AndroidPhone
         };
     }
