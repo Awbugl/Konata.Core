@@ -226,7 +226,7 @@ internal class TaskScheduler : IDisposable
                     {
                         i.Action.Invoke();
                     }
-                    catch (Exception e)
+                    catch
                     {
                         // LogE(TAG, "Task failed.");
                         // LogE(TAG, e);
