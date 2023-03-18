@@ -100,7 +100,7 @@ public static class GroupExt
     /// <returns>Return true for operation successfully.</returns>
     /// <exception cref="MessagingException"></exception>
     [KonataApi(1)]
-    public static Task<bool> SendGroupMessage(this Bot bot, uint groupUin, MessageBuilder builder)
+    public static Task<int> SendGroupMessage(this Bot bot, uint groupUin, MessageBuilder builder)
         => bot.BusinessComponent.Messaging.SendGroupMessage(groupUin, builder.Build());
 
     /// <summary>
@@ -112,7 +112,7 @@ public static class GroupExt
     /// <returns>Return true for operation successfully.</returns>
     /// <exception cref="MessagingException"></exception>
     [KonataApi(1)]
-    public static Task<bool> SendGroupMessage(this Bot bot, uint groupUin, string message)
+    public static Task<int> SendGroupMessage(this Bot bot, uint groupUin, string message)
         => bot.SendGroupMessage(groupUin, new MessageBuilder(message));
 
     /// <summary>
@@ -124,7 +124,7 @@ public static class GroupExt
     /// <returns>Return true for operation successfully.</returns>
     /// <exception cref="MessagingException"></exception>
     [KonataApi(1)]
-    public static Task<bool> SendGroupMessage(this Bot bot, uint groupUin, params BaseChain[] chains)
+    public static Task<int> SendGroupMessage(this Bot bot, uint groupUin, params BaseChain[] chains)
         => bot.SendGroupMessage(groupUin, new MessageBuilder(chains));
 
     /// <summary>
@@ -136,7 +136,7 @@ public static class GroupExt
     /// <returns>Return true for operation successfully.</returns>
     /// <exception cref="MessagingException"></exception>
     [KonataApi(1)]
-    public static Task<bool> SendGroupMessage(this Bot bot, uint groupUin, MessageChain chain)
+    public static Task<int> SendGroupMessage(this Bot bot, uint groupUin, MessageChain chain)
         => bot.SendGroupMessage(groupUin, new MessageBuilder(chain));
     
     /// <summary>
@@ -147,7 +147,7 @@ public static class GroupExt
     /// <returns>Return true for operation successfully.</returns>
     /// <exception cref="MessagingException"></exception>
     [KonataApi(1)]
-    public static Task<bool> RecallMessage(this Bot bot, MessageStruct message)
+    public static Task<int> RecallMessage(this Bot bot, MessageStruct message)
         => bot.BusinessComponent.Messaging.RecallMessage(message);
 
     /// <summary>

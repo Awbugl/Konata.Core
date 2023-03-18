@@ -74,10 +74,10 @@ internal class ConfigComponent : InternalComponent
         AppInfo = config.Protocol switch
         {
             OicqProtocol.AndroidPhone => AppInfo.AndroidPhone,
-            OicqProtocol.Watch => AppInfo.Watch,
-            OicqProtocol.Ipad => AppInfo.Ipad,
-            OicqProtocol.AndroidPad => AppInfo.AndroidPad,
-            _ => AppInfo.AndroidPhone
+            OicqProtocol.Watch        => AppInfo.Watch,
+            OicqProtocol.AndroidPad   => AppInfo.AndroidPad,
+            OicqProtocol.iPad         => AppInfo.Ipad,
+            _                         => AppInfo.AndroidPhone
         };
 
         if (GlobalConfig.HighwayChunkSize is <= 1024 or > 1048576)
