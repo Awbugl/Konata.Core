@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Konata.Core.Attributes;
 using Konata.Core.Common;
+using Konata.Core.Components.Logics.Model;
 using Konata.Core.Events.Model;
 using Konata.Core.Exceptions.Model;
 using Konata.Core.Message.Model;
@@ -22,7 +23,7 @@ public static class BotExt
     /// <param name="bot"><b>[In]</b> Bot instance</param>
     /// <returns></returns>
     [KonataApi(1)]
-    public static Task<(bool Success, WtLoginEvent Event)> Login(this Bot bot)
+    public static Task<WtLoginResult> Login(this Bot bot)
         => bot.BusinessComponent.WtExchange.Login();
 
     /// <summary>

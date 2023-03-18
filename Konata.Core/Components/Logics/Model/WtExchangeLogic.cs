@@ -55,26 +55,24 @@ internal class WtExchangeLogic : BaseLogic
         _heartbeatCounter++;
     }
 
-    private static readonly (bool Success, WtLoginEvent Event) DefaultValue = (false, WtLoginEvent.ResultNotImplemented(0,""));
-
     /// <summary>
     /// Bot login
     /// </summary>
     /// <returns></returns>
-    public async Task<(bool Success, WtLoginEvent Event)> Login()
+    public async Task<WtLoginResult> Login()
     {
         // Check online type
         if (_onlineType != OnlineStatusEvent.Type.Offline)
         {
             Context.LogW(TAG, "Calling Login method again while online.");
-            return DefaultValue;
+            return WtLoginResult.CreateFromExtraMessage(-1, "Calling Login method again while online.");
         }
 
         // Connect to the server
         Context.LogI(TAG, "Connecting server...");
         if (!await SocketComponent.Connect(true))
         {
-            return DefaultValue;
+            return WtLoginResult.CreateFromExtraMessage(-2, "Connect to server failed.");
         }
 
         try
@@ -82,8 +80,7 @@ internal class WtExchangeLogic : BaseLogic
             WtLoginEvent wtStatus;
 
             // Can I fast login?
-            if (ConfigComponent.KeyStore.Session.D2Key.Length != 0
-                && ConfigComponent.KeyStore.Session.D2Token.Length != 0)
+            if (ConfigComponent.KeyStore.Session.D2Key.Length != 0 && ConfigComponent.KeyStore.Session.D2Token.Length != 0)
             {
                 // Okay, We can try it
                 Context.LogI(TAG, "Do WtXchg");
@@ -121,9 +118,13 @@ internal class WtExchangeLogic : BaseLogic
                 switch (wtStatus.EventType)
                 {
                     case WtLoginEvent.Type.OK:
-                        if (!await OnBotOnline()) return DefaultValue;
+                        if (!await OnBotOnline())
+                        {
+                            return WtLoginResult.CreateFromExtraMessage(-3, "Bot online failed.");
+                        }
+
                         _isFirstLogin = false;
-                        return (true, wtStatus);
+                        return WtLoginResult.CreateFromEvent(wtStatus);
 
                     case WtLoginEvent.Type.CheckSms:
                     case WtLoginEvent.Type.CheckSlider:
@@ -132,10 +133,8 @@ internal class WtExchangeLogic : BaseLogic
                         if (!Context.Bot.HandlerRegistered<CaptchaEvent>())
                         {
                             await Context.SocketComponent.Disconnect("Need handler.");
-                            Context.LogW(TAG,
-                                         "No captcha event handler registered, "
-                                         + "Please note, Konata cannot process captcha automatically.");
-                            return (false, wtStatus);
+                            Context.LogW(TAG, "No captcha event handler registered, " + "Please note, Konata cannot process captcha automatically.");
+                            WtLoginResult.CreateFromEvent(wtStatus, "No captcha event handler registered.");
                         }
 
                         // Wait for user operation
@@ -164,15 +163,16 @@ internal class WtExchangeLogic : BaseLogic
                     case WtLoginEvent.Type.OutdatedVersion:
                         await Context.SocketComponent.Disconnect("Wtlogin failed.");
                         Context.LogE(TAG, $"Wtlogin failed with code {wtStatus.ResultCode}. {wtStatus.EventMessage}");
-                        return (false, wtStatus);
+                        return WtLoginResult.CreateFromEvent(wtStatus);
 
                     case WtLoginEvent.Type.Unknown:
                     case WtLoginEvent.Type.NotImplemented:
                     default:
                         await Context.SocketComponent.Disconnect("Wtlogin failed.");
-                        Context.LogE(TAG, $"Wtlogin failed with code {wtStatus.ResultCode}, " +
-                                          $"Unsupported wtlogin event type received. {wtStatus.EventMessage}");
-                        return (false, wtStatus);
+                        Context.LogE(TAG,
+                                     $"Wtlogin failed with code {wtStatus.ResultCode}, " +
+                                     $"Unsupported wtlogin event type received. {wtStatus.EventMessage}");
+                        return WtLoginResult.CreateFromEvent(wtStatus);
                 }
             }
         }
@@ -181,7 +181,7 @@ internal class WtExchangeLogic : BaseLogic
             await SocketComponent.Disconnect(e.Message);
             Context.LogE(TAG, e);
 
-            return DefaultValue;
+            return WtLoginResult.CreateFromExtraMessage(-233, e.Message);
         }
     }
 
@@ -199,13 +199,8 @@ internal class WtExchangeLogic : BaseLogic
         Context.PostEvent<BusinessComponent>(OnlineStatusEvent.Push(OnlineStatusEvent.Type.Offline, "User logout"));
 
         // Push logged out
-        Context.PostEventToEntity(
-            BotOfflineEvent.Push(
-                BotOfflineEvent.OfflineType.UserLoggedOut,
-                "User logout"
-            )
-        );
-        
+        Context.PostEventToEntity(BotOfflineEvent.Push(BotOfflineEvent.OfflineType.UserLoggedOut, "User logout"));
+
         return SocketComponent.Disconnect("User logout");
     }
 
@@ -384,11 +379,10 @@ internal class WtExchangeLogic : BaseLogic
                         return;
                     }
 
-                    Context.LogW(TAG, "Reconnect failed! " +
-                                      "Might need to re-login?");
+                    Context.LogW(TAG, "Reconnect failed! " + "Might need to re-login?");
                 }
 
-                // Relogin
+                // re-login
                 OnReConnect();
             }
         }
@@ -467,32 +461,67 @@ internal class WtExchangeLogic : BaseLogic
         // Push offline
         var reason = $"{e.NotifyTitle} {e.OfflineReason}";
         Context.PostEvent<BusinessComponent>(OnlineStatusEvent.Push(OnlineStatusEvent.Type.Offline, reason));
-        
+
         Context.PostEventToEntity(BotOfflineEvent.Push(BotOfflineEvent.OfflineType.ServerKickOff, reason));
     }
 
-#region Stub methods
+    #region Stub methods
 
-    private static Task<WtLoginEvent> WtLogin(BusinessComponent context) =>
-        context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateTgtgt());
+    private static Task<WtLoginEvent> WtLogin(BusinessComponent context) => context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateTgtgt());
 
-    private static Task<WtLoginEvent> WtXchg(BusinessComponent context) =>
-        context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateXchg());
+    private static Task<WtLoginEvent> WtXchg(BusinessComponent context) => context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateXchg());
 
-    private static Task<WtLoginEvent> WtRefreshSmsCode(BusinessComponent context) =>
-        context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateRefreshSms());
+    private static Task<WtLoginEvent> WtRefreshSmsCode(BusinessComponent context)
+        => context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateRefreshSms());
 
-    private static Task<WtLoginEvent> WtVerifyDeviceLock(BusinessComponent context) =>
-        context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateCheckDevLock());
+    private static Task<WtLoginEvent> WtVerifyDeviceLock(BusinessComponent context)
+        => context.SendPacket<WtLoginEvent>(WtLoginEvent.CreateCheckDevLock());
 
-    private static Task<WtLoginEvent> WtCheckUserOperation(BusinessComponent context, WtLoginEvent userOperation) =>
-        context.SendPacket<WtLoginEvent>(userOperation);
+    private static Task<WtLoginEvent> WtCheckUserOperation(BusinessComponent context, WtLoginEvent userOperation)
+        => context.SendPacket<WtLoginEvent>(userOperation);
 
     private static Task<OnlineStatusEvent> SetClientOnlineType(BusinessComponent context, OnlineStatusEvent.Type onlineType)
         => context.SendPacket<OnlineStatusEvent>(OnlineStatusEvent.Create(onlineType));
 
-    private static Task<CheckHeartbeatEvent> CheckHeartbeat(BusinessComponent context) =>
-        context.SendPacket<CheckHeartbeatEvent>(CheckHeartbeatEvent.Create());
+    private static Task<CheckHeartbeatEvent> CheckHeartbeat(BusinessComponent context)
+        => context.SendPacket<CheckHeartbeatEvent>(CheckHeartbeatEvent.Create());
 
-#endregion
+    #endregion
+}
+
+public record WtLoginResult
+{
+    internal bool Success => _wtLoginEvent?.ResultCode == 0;
+
+    public int ResultCode => _wtLoginEvent?.ResultCode ?? -233;
+
+    public WtLoginEvent.Type EventType => _wtLoginEvent?.EventType ?? WtLoginEvent.Type.Unknown;
+
+    public string EventMessage
+    {
+        get
+        {
+            if (_wtLoginEvent == null) return _extraMessage ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(_extraMessage)) return _wtLoginEvent.EventMessage;
+
+            return _wtLoginEvent.EventMessage + Environment.NewLine + _extraMessage;
+        }
+    }
+
+#nullable enable
+    
+    private string? _extraMessage;
+
+    private WtLoginEvent? _wtLoginEvent;
+
+    internal static WtLoginResult CreateFromEvent(WtLoginEvent userOperation, string? extraMessage = null)
+        => new() { _wtLoginEvent = userOperation, _extraMessage = extraMessage };
+
+    internal static WtLoginResult CreateFromExtraMessage(int resultCode, string message)
+        => new() { _wtLoginEvent = WtLoginEvent.ResultNotImplemented(resultCode, message), _extraMessage = message };
+
+#nullable disable
+    
+    public static implicit operator bool(WtLoginResult result) => result.Success;
 }
