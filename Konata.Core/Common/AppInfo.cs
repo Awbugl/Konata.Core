@@ -27,10 +27,10 @@ internal class AppInfo
     public static AppInfo AndroidPhone => new()
     {
         AppId = 16,
-        SubAppId = 537138832,
+        SubAppId = 537151682,
         AppClientVersion = 0,
         ApkPackageName = "com.tencent.mobileqq",
-        ApkVersionName = "8.9.15.9425",
+        ApkVersionName = "8.9.33.10335",
         AppBuildVer = "8.8.80.7400",
         AppRevision = "61cd5c8c",
         ApkSignatureMd5 = new byte[]
@@ -43,7 +43,7 @@ internal class AppInfo
         WtLoginSdk = new()
         {
             SdkBuildTime = 1640921786,
-            SdkVersion = "6.0.0.2494",
+            SdkVersion = "6.0.0.2534",
             MainSigBitmap = 16724722,
             MiscBitmap = 150470524,
             SubSigBitmap = 66560,
@@ -54,10 +54,10 @@ internal class AppInfo
     public static AppInfo AndroidPad => new()
     {
         AppId = 16,
-        SubAppId = 537140414,
+        SubAppId = 537151218,
         AppClientVersion = 0,
         ApkPackageName = "com.tencent.mobileqq",
-        ApkVersionName = "8.9.15.9425",
+        ApkVersionName = "8.9.33.10335",
         AppBuildVer = "8.8.80.7400",
         AppRevision = "61cd5c8c",
         ApkSignatureMd5 = new byte[]
@@ -70,7 +70,7 @@ internal class AppInfo
         WtLoginSdk = new()
         {
             SdkBuildTime = 1640921786,
-            SdkVersion = "6.0.0.2494",
+            SdkVersion = "6.0.0.2534",
             MainSigBitmap = 16724722,
             MiscBitmap = 150470524,
             SubSigBitmap = 66560,

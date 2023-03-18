@@ -159,16 +159,19 @@ internal class WtExchangeLogic : BaseLogic
 
                     case WtLoginEvent.Type.LoginDenied:
                     case WtLoginEvent.Type.InvalidSmsCode:
-                    case WtLoginEvent.Type.HighRiskEnvironment:
+                    case WtLoginEvent.Type.HighRiskOfEnvironment:
                     case WtLoginEvent.Type.InvalidUinOrPassword:
+                    case WtLoginEvent.Type.OutdatedVersion:
                         await Context.SocketComponent.Disconnect("Wtlogin failed.");
+                        Context.LogE(TAG, $"Wtlogin failed with code {wtStatus.ResultCode}. {wtStatus.EventMessage}");
                         return (false, wtStatus);
 
                     case WtLoginEvent.Type.Unknown:
                     case WtLoginEvent.Type.NotImplemented:
                     default:
                         await Context.SocketComponent.Disconnect("Wtlogin failed.");
-                        Context.LogE(TAG, "Login fail. Unsupported wtlogin event type received.");
+                        Context.LogE(TAG, $"Wtlogin failed with code {wtStatus.ResultCode}, " +
+                                          $"Unsupported wtlogin event type received. {wtStatus.EventMessage}");
                         return (false, wtStatus);
                 }
             }
@@ -189,15 +192,20 @@ internal class WtExchangeLogic : BaseLogic
     public Task<bool> Logout()
     {
         // Cancel schedules
-        ScheduleComponent.Cancel(SchedulePullMessage);
-        ScheduleComponent.Cancel(ScheduleCheckConnection);
+        Context.Bot.Scheduler.Cancel(SchedulePullMessage);
+        Context.Bot.Scheduler.Cancel(ScheduleCheckConnection);
 
         // Push offline
         Context.PostEvent<BusinessComponent>(OnlineStatusEvent.Push(OnlineStatusEvent.Type.Offline, "User logout"));
 
-        // Push loggedout
-        Context.PostEventToEntity(BotOfflineEvent.Push(BotOfflineEvent.OfflineType.UserLoggedOut, "User logout"));
-
+        // Push logged out
+        Context.PostEventToEntity(
+            BotOfflineEvent.Push(
+                BotOfflineEvent.OfflineType.UserLoggedOut,
+                "User logout"
+            )
+        );
+        
         return SocketComponent.Disconnect("User logout");
     }
 
@@ -259,7 +267,7 @@ internal class WtExchangeLogic : BaseLogic
     //         case OnlineStatusEvent.Type.Busy:
     //         case OnlineStatusEvent.Type.Hidden:
     //         case OnlineStatusEvent.Type.QMe:
-    //         case OnlineStatusEvent.Type.DoNotDistrub:
+    //         case OnlineStatusEvent.Type.DoNotDisturb:
     //             return Task.FromResult(false);
     //     }
     //
@@ -292,8 +300,8 @@ internal class WtExchangeLogic : BaseLogic
                 Context.LogI(TAG, "Bot online.");
 
                 // Register schedules
-                ScheduleComponent.Interval(SchedulePullMessage, 180 * 1000, OnPullMessage);
-                ScheduleComponent.Interval(ScheduleCheckConnection, 60 * 1000, OnCheckConnection);
+                Context.Bot.Scheduler.Interval(SchedulePullMessage, 180 * 1000, OnPullMessage);
+                Context.Bot.Scheduler.Interval(ScheduleCheckConnection, 60 * 1000, OnCheckConnection);
 
                 // Bot online
                 Context.PostEvent<BusinessComponent>(online);
@@ -358,8 +366,8 @@ internal class WtExchangeLogic : BaseLogic
             await SocketComponent.Disconnect("Heart broken.");
 
             // Cancel schedules
-            ScheduleComponent.Cancel(SchedulePullMessage);
-            ScheduleComponent.Cancel(ScheduleCheckConnection);
+            Context.Bot.Scheduler.Cancel(SchedulePullMessage);
+            Context.Bot.Scheduler.Cancel(ScheduleCheckConnection);
 
             // Check if reconnect
             if (ConfigComponent.GlobalConfig.TryReconnect)
@@ -369,17 +377,15 @@ internal class WtExchangeLogic : BaseLogic
                 // Reconnect
                 if (await SocketComponent.Reconnect())
                 {
-                    // Bot reonline
+                    // Bot re-online
                     if (await OnBotOnline())
                     {
                         Context.LogI(TAG, "Network reset.");
                         return;
                     }
-                    
-                    Context.PostEventToEntity(BotOfflineEvent.Push(BotOfflineEvent.OfflineType.NetworkDown,
-                                                                   "Client was down due to network issue. Reconnect failed."));
-                   
-                    Context.LogW(TAG, "Reconnect failed! " + "Might need to relogin?");
+
+                    Context.LogW(TAG, "Reconnect failed! " +
+                                      "Might need to re-login?");
                 }
 
                 // Relogin
@@ -407,7 +413,7 @@ internal class WtExchangeLogic : BaseLogic
 
             // Check the connection
             _heartbeatCounter = 0;
-            ScheduleComponent.Trigger(ScheduleCheckConnection);
+            Context.Bot.Scheduler.Trigger(ScheduleCheckConnection);
         }
     }
 
@@ -455,8 +461,8 @@ internal class WtExchangeLogic : BaseLogic
         ConfigComponent.KeyStore.Session.D2Token = Array.Empty<byte>();
 
         // Cancel schedules
-        ScheduleComponent.Cancel(SchedulePullMessage);
-        ScheduleComponent.Cancel(ScheduleCheckConnection);
+        Context.Bot.Scheduler.Cancel(SchedulePullMessage);
+        Context.Bot.Scheduler.Cancel(ScheduleCheckConnection);
 
         // Push offline
         var reason = $"{e.NotifyTitle} {e.OfflineReason}";

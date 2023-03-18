@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Konata.Core.Attributes;
 using Konata.Core.Common;
 using Konata.Core.Events;
+using Konata.Core.Network.TcpClient;
 using Konata.Core.Packets;
 using Konata.Core.Packets.SvcRequest;
 using Konata.Core.Packets.SvcResponse;
@@ -14,7 +15,7 @@ using Konata.Core.Utils.Crypto;
 using Konata.Core.Utils.Extensions;
 using Konata.Core.Utils.IO;
 using Konata.Core.Utils.Network;
-using Konata.Core.Utils.Network.TcpClient;
+using ClientListener = Konata.Core.Network.TcpClient.ClientListener;
 
 // ReSharper disable InvertIf
 // ReSharper disable ArrangeObjectCreationWhenTypeNotEvident
@@ -102,14 +103,12 @@ internal class SocketComponent : InternalComponent, IClientListener
                           $"=> {time}ms.");
             }
 
-            // Sort the list by lantency
+            // Sort the list by latency
             serverList.Sort((a, b) => a.Item3.CompareTo(b.Item3));
           
             // Try connect to each server
-            for (int i = 0; i < serverList.Count; i++)
+            foreach (var (addr, port, latency) in serverList)
             {
-                var (addr, port, lantency) = serverList[i];
-
                 // Connect
                 LogI(TAG, $"Try Connecting {addr}:{port}.");
                 var result = await _tcpClient.Connect(addr, port);

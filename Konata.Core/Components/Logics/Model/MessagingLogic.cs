@@ -8,6 +8,7 @@ using Konata.Core.Events.Model;
 using Konata.Core.Exceptions.Model;
 using Konata.Core.Message;
 using Konata.Core.Message.Model;
+using Konata.Core.Network.Highway;
 using Konata.Core.Utils.Extensions;
 using Konata.Core.Utils.IO;
 
@@ -86,7 +87,7 @@ internal class MessagingLogic : BaseLogic
 
         return result.ResultCode;
     }
-    
+
     /// <summary>
     /// Recall a message
     /// </summary>
@@ -178,7 +179,7 @@ internal class MessagingLogic : BaseLogic
                 // Upload records
                 UploadRecords(recordChains, uin, isGroup),
 
-                // Placeholder for multisg
+                // Placeholder for MultiMsg
                 Task.FromResult(false)
             );
 
@@ -308,15 +309,25 @@ internal class MessagingLogic : BaseLogic
                 block[i].SetPicUpInfo(result.UploadInfo[i]);
 
             // Highway image upload
-            if (!await HighwayComponent.PicDataUp(Context.Bot.Uin, block, isGroup))
-                return false;
+            var uploader = new PicDataUploader()
+            {
+                SelfUin = Context.Bot.Uin,
+                AppInfo = ConfigComponent.AppInfo,
+                ChunkSize = ConfigComponent.GlobalConfig.HighwayChunkSize,
+                Images = block,
+                ImageType = isGroup
+                    ? PicDataUploader.DataType.GroupImage
+                    : PicDataUploader.DataType.PrivateImage
+            };
+
+            if (!await uploader.Upload()) return false;
         }
 
         return true;
     }
 
     /// <summary>
-    /// Upload multimsg
+    /// Upload MultiMsg
     /// </summary>
     /// <param name="uin"></param>
     /// <param name="main"></param>
@@ -326,7 +337,7 @@ internal class MessagingLogic : BaseLogic
     private async Task<bool> UploadMultiMsg(MultiMsgChain main,
         List<MultiMsgChain> sides, uint uin, bool isGroup)
     {
-        // Chain packup
+        // Chain pack up
         var packed = MessagePacker.PackMultiMsg(main, sides,
             isGroup ? MessagePacker.Mode.Group : MessagePacker.Mode.Friend);
 
@@ -342,8 +353,17 @@ internal class MessagingLogic : BaseLogic
             main.SetMultiMsgUpInfo(result.UploadInfo, packed);
         }
 
-        // Highway multimsg upload
-        return await HighwayComponent.MultiMsgUp(uin, Context.Bot.Uin, main);
+        // Highway MultiMsg upload
+        var uploader = new MultiMsgUploader()
+        {
+            SelfUin = Context.Bot.Uin,
+            AppInfo = ConfigComponent.AppInfo,
+            ChunkSize = ConfigComponent.GlobalConfig.HighwayChunkSize,
+            DestUin = uin,
+            MultiMessages = main,
+        };
+
+        return await uploader.Upload();
     }
 
     /// <summary>
@@ -386,11 +406,22 @@ internal class MessagingLogic : BaseLogic
             });
 
             // Upload the record
-            return await HighwayComponent
-                .PttUp(uin, Context.Bot.Uin, i, isGroup);
+            var uploader = new PttDataUploader()
+            {
+                SelfUin = Context.Bot.Uin,
+                AppInfo = ConfigComponent.AppInfo,
+                ChunkSize = ConfigComponent.GlobalConfig.HighwayChunkSize,
+                DestUin = uin,
+                PttInfo = i,
+                PttType = isGroup
+                    ? PttDataUploader.DataType.GroupPtt
+                    : PttDataUploader.DataType.PrivatePtt,
+            };
+
+            return await uploader.Upload();
         }
 
-        Context.LogV(TAG, "Recored uploaded.");
+        Context.LogV(TAG, "Recorded uploaded.");
         return true;
     }
 
@@ -406,7 +437,7 @@ internal class MessagingLogic : BaseLogic
 
     private static Task<ProtocolEvent> SendFriendMessage(BusinessComponent context, uint friendUin, MessageChain message)
         => context.SendPacket<ProtocolEvent>(FriendMessageEvent.Create(friendUin, context.Bot.Uin, message));
-    
+
     private static Task<ProtocolEvent> RecallGroupMessage(BusinessComponent context, uint groupUin, uint sequence, uint random)
         => context.SendPacket<ProtocolEvent>(GroupMessageRecallEvent.Create(groupUin, sequence, random));
 
