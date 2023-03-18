@@ -65,14 +65,15 @@ internal class WtExchangeLogic : BaseLogic
         if (_onlineType != OnlineStatusEvent.Type.Offline)
         {
             Context.LogW(TAG, "Calling Login method again while online.");
-            return WtLoginResult.CreateFromExtraMessage(-1, "Calling Login method again while online.");
+            return WtLoginResult.CreateFromExtraMessage(WtLoginResult.Type.CallingLoginMethodAgainWhileOnline,
+                                                        "Calling Login method again while online.");
         }
 
         // Connect to the server
         Context.LogI(TAG, "Connecting server...");
         if (!await SocketComponent.Connect(true))
         {
-            return WtLoginResult.CreateFromExtraMessage(-2, "Connect to server failed.");
+            return WtLoginResult.CreateFromExtraMessage(WtLoginResult.Type.ConnectToServerFailed, "Connect to server failed.");
         }
 
         try
@@ -120,7 +121,7 @@ internal class WtExchangeLogic : BaseLogic
                     case WtLoginEvent.Type.OK:
                         if (!await OnBotOnline())
                         {
-                            return WtLoginResult.CreateFromExtraMessage(-3, "Bot online failed.");
+                            return WtLoginResult.CreateFromExtraMessage(WtLoginResult.Type.BotOnlineFailed, "Bot online failed.");
                         }
 
                         _isFirstLogin = false;
@@ -181,7 +182,7 @@ internal class WtExchangeLogic : BaseLogic
             await SocketComponent.Disconnect(e.Message);
             Context.LogE(TAG, e);
 
-            return WtLoginResult.CreateFromExtraMessage(-233, e.Message);
+            return WtLoginResult.CreateFromExtraMessage(WtLoginResult.Type.Exception, e.Message);
         }
     }
 
@@ -491,11 +492,22 @@ internal class WtExchangeLogic : BaseLogic
 
 public record WtLoginResult
 {
+    public enum Type
+    {
+        Success = 0,
+        CallingLoginMethodAgainWhileOnline = -1,
+        ConnectToServerFailed = -2,
+        BotOnlineFailed = -3,
+        Exception = -233
+    }
+
     internal bool Success => _wtLoginEvent?.ResultCode == 0;
 
-    public int ResultCode => _wtLoginEvent?.ResultCode ?? -233;
+    public int ResultCode => _wtLoginEvent?.ResultCode ?? (int)_resultType;
 
     public WtLoginEvent.Type EventType => _wtLoginEvent?.EventType ?? WtLoginEvent.Type.Unknown;
+
+    public Type ResultType => _resultType;
 
     public string EventMessage
     {
@@ -509,19 +521,17 @@ public record WtLoginResult
         }
     }
 
-#nullable enable
-    
-    private string? _extraMessage;
+    private string _extraMessage;
 
-    private WtLoginEvent? _wtLoginEvent;
+    private WtLoginEvent _wtLoginEvent;
 
-    internal static WtLoginResult CreateFromEvent(WtLoginEvent userOperation, string? extraMessage = null)
-        => new() { _wtLoginEvent = userOperation, _extraMessage = extraMessage };
+    private Type _resultType;
 
-    internal static WtLoginResult CreateFromExtraMessage(int resultCode, string message)
-        => new() { _wtLoginEvent = WtLoginEvent.ResultNotImplemented(resultCode, message), _extraMessage = message };
+    internal static WtLoginResult CreateFromEvent(WtLoginEvent wtLoginEvent, string extraMessage = null)
+        => new() { _wtLoginEvent = wtLoginEvent, _extraMessage = extraMessage };
 
-#nullable disable
-    
+    internal static WtLoginResult CreateFromExtraMessage(Type resultCode, string message)
+        => new() { _resultType = resultCode, _extraMessage = message };
+
     public static implicit operator bool(WtLoginResult result) => result.Success;
 }
