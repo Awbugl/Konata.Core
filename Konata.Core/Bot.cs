@@ -103,7 +103,7 @@ public class Bot : BaseEntity, IDisposable
         {
             OicqProtocol.AndroidPhone => AppInfo.AndroidPhone,
             OicqProtocol.Watch => AppInfo.Watch,
-            OicqProtocol.Ipad => AppInfo.Ipad,
+            OicqProtocol.iPad => AppInfo.Ipad,
             OicqProtocol.AndroidPad => AppInfo.AndroidPad,
             _ => AppInfo.AndroidPhone
         };
