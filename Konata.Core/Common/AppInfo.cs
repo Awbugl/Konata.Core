@@ -6,6 +6,7 @@ internal class AppInfo
 {
     public uint AppId { get; private set; }
     public uint SubAppId { get; private set; }
+    public string AppKey { get; private set; }
     public uint AppClientVersion { get; private set; }
     public string ApkPackageName { get; private set; }
     public string ApkVersionName { get; private set; }
@@ -28,6 +29,7 @@ internal class AppInfo
     {
         AppId = 16,
         SubAppId = 537151682,
+        AppKey = "0S200MNJT807V3GE",
         AppClientVersion = 0,
         ApkPackageName = "com.tencent.mobileqq",
         ApkVersionName = "8.9.33.10335",
@@ -55,6 +57,7 @@ internal class AppInfo
     {
         AppId = 16,
         SubAppId = 537151218,
+        AppKey = "0S200MNJT807V3GE",
         AppClientVersion = 0,
         ApkPackageName = "com.tencent.mobileqq",
         ApkVersionName = "8.9.33.10335",
